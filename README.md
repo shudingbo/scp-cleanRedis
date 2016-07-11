@@ -24,6 +24,9 @@ Using npm:
 
 
 ## Changelog
+### 0.0.2
+Fix bug,only run once.
+
 ### 0.0.1
 Implement it.
 
