@@ -152,7 +152,7 @@ Below is the configuration of detailed examples:
 					}
 				]
 			}
-		},
+		}
 	]
 
 };
