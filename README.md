@@ -2,7 +2,7 @@
 
 [中文看这里]
 
-This Module is plugin for [sdb-schedule], use auto clean redis data. sdb-schedule has APP [node-schedule-ui].
+This Module is plugin for [sdb-schedule], use auto clean redis data. sdb-schedule has APP [sdb-schedule-ui].
 You can download it [download]。
 
 - support regex 
