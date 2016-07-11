@@ -1,243 +1,163 @@
+# Redis 数据清理
 
-# Simple schedule framework
 [中文看这里]
+
+This Module is plugin for [sdb-schedule], use auto clean redis data. sdb-schedule has APP [node-schedule-ui].
+You can download it [download]。
+
+- support regex 
+- support ZSET,LIST clean
 
 ![Setting][idSet]
 
-## Installation
 
+## Install
+
+### step 1: install module
 Using npm:
 
-    $ npm install sdb-schedule
+    $ npm install scp-cleanRedis
 
-To run the tests:
+### step 2: config in sdb-schedule
 
-    $ node test.js
-
-## Description
-This is schedule framework base **[node-schedule]**. Through a simple configuration, you can control schedule jobs.
-This module provides follow function:
-
- - Cron format string config schedule
- - Can dynamic control tasks on/off/update
- - Config and task script can In any position
-
-## APP(UI)
-Now we implement an app [sdb-schedule-ui],using admin schedules( only support redis drv ),you can [download] it.
-- Base Electron
+- Add Job, set Fun parame **"scp-cleanRedis"**.
 
 
-### Changelog
-#### 1.0.8
-- Implement #4,Can Edid job's config.
+## Changelog
+### 0.0.1
+Implement it.
 
-#### 1.0.6
-fixed #1
+## Config
+  Config file is json:
 
-#### 1.0.5
-fixed using RedisDrv，Job startTime/stopTime can't record.
-
-#### 1.0.4
-Add RedisDrv(Redis configuration manager module),using [node-redis];
-
-#### 1.0.3
-Refactor the code, separate configuration management module. Now can easy support. Are now able to support more than one type of configuration file management more easily. For example, using the **File/Redis/SQL** Server storage management plan task configuration File.
- - Add File Config module support.
-
-
-
-## Configuration AND Configuration file Manager
-### Configuration
-  Configuration file using the json format, defined the schedules,as shown below:
 ```javascript
-{
-	"schedules":{
-		"enableRoom":{
-			"cron":"*/5 * * * * *",
-			"fun":"./sc/enableRoom.js",
-			"switch":true
-		},
-		"disableRoom":{
-			"cron":"*/5 * * * * *",
-			"fun":"./sc/disableRoom.js",
-			"switch":false
+ {
+	"redis":{ "host":"127.0.0.1","port":6379 },
+	"keys":[
+		{
+			"name":"<descript info>",
+			"type":"<zset|list|key>",
+			"match":"<redis keys synctax>",
+			"action":{
+				"style" : "<rank|score|rem|trim>",  // rank|score for ZSET;rem|trim for LIST
+				"min"   : "<js expression>",
+				"max"   : "<js expression>",
+				"count" : "<js expression>", // optional ,FOR LIST rem
+				"value" : "<js expression>", // optional ,FOR LIST rem
+				"expire":36000,    // optional, for key type
+
+				"regex":"<regex>",
+				"attr":[
+					{
+						"matchType":"<int|string|dateStamp>",
+						"min"    : "<val0 | js expression>",
+						"max"    : "[val0 | js expression]"
+					}
+				]
+			}
 		}
-	}
-}
-```
-
-All job defined in **schedules** fields, each job define as json object,must have 3 fields:(cron,fun and switch).
-
-  - **cron** , define job cron string.
-  - **fun**  , is the node function module, called when the time of arrival
-  - **switch**, switch,told sdb-schedules on/off this job
-
-The cron format consists of:
-```
-*    *    *    *    *    *
-┬    ┬    ┬    ┬    ┬    ┬
-│    │    │    │    │    |
-│    │    │    │    │    └ day of week (0 - 7) (0 or 7 is Sun)
-│    │    │    │    └───── month (1 - 12)
-│    │    │    └────────── day of month (1 - 31)
-│    │    └─────────────── hour (0 - 23)
-│    └──────────────────── minute (0 - 59)
-└───────────────────────── second (0 - 59, OPTIONAL)
-```
-#### Unsupported Cron Features
-
-Currently, `W` (nearest weekday), `L` (last day of month/week), and `#` (nth weekday
-of the month) are not supported. Most other features supported by popular cron
-implementations should work just fine.
-
-[cron-parser] is used to parse crontab instructions.
-
-### configure manager
-Since version 1.0.3, profile management as a separate module, the default now provides a kind of configuration file management module (FileDrv), you can extend the configuration file management module based on the requirements, such as using redis configuration management module.
-We can create the sdb-schedule by the incoming parameters, using the configuration management module specified:
-
-```javascript
-var app = sc({
-				'cfg_drv':'filedrv.js',
-				'cfg_opt':{
-					'cfgFile':"./config.json"
-				}
-			});
-```
- - **cfg_drv**,Specify the use of configuration file management module;
- - **cfg_opt**,Specify the parameters of the configuration file management module, when  construct configuration file management module,passed it as parameter.
-
-#### FileDrv ( File Configuration Manager Module)
-Using file manager the configuration. 
-
-cfg_opt:
- - **cfgFile**,Config file path;
-
-
-
-#### RedisDrv ( Redis Configuration Manager Module)
-Using Redis manager the configuration. [node-redis]
-
-cfg_opt:
- - **host**, redis server's host;
- - **port**, redis server's port;
- - **keyPre**, redis key's pre;
- - **checkInterval**, check config interval, mill sec;
-
-
-## API
-I am schedule framework, have two part:Frame and JobPlugin.
-
- - **[Frame](#frame)**, admin the Job Plugin.
- - **[Job Plugin](#jobplugin)**, Implement the schedule Job work.
-
- Work flow like this:
-
- 1. `var sc = require("sdb-schedule"); `  Require module sdb-schedules.
- 1. `var app = sc( { 'cfg_drv':'filedrv.js','cfg_opt':{} });` Construct sc object and give her ths config file path.
- 1. `app.run();` Call run() start work.
- 1. `app.stop();`  Stop work.
-
-### Frame
- - [run()](#run), start schedules.
- - [stop()](#stop), stop schedules.
- - [updateJob(name,scCfg)](#updatejob), add/update schedule job.
- - [runJob(name)](#runjob), run job by name.
- - [stopJob(name)](#stopjob), stop job by name.
- - [getConfig(name)](#getConfig), 获取名称的工作任务的配置.
-
-#### run
-Run all job that *switch* is `true`.  
-No parames.
-
-#### stop
-Stop all job.
-No parames.
-
-#### updateJob
-`updateJob(name,scCfg )`
-
- - **name**, Job's name, string.
- - **scCfg**, Job's cfg.
-```javascript
-    {
-    	"corn":<* * * * * * *>,
-        "fun":"",
-        "switch":true|false
-    }
-```
- Update Job，
-
- - If cron or fun has change,and the job is running,then restart job.
- - If job not run,only change the config.
- - If job not exist, add new job,but can't run it ,you must manual run it( call runJob );
-
-
-#### runJob
-`runJob(name)`
-
- - **name**, Job's name, string.
-
-#### stopJob
-`stopJob(name)`
-
- - **name**, Job's name, string.
-
-#### getConfig
-`getConfig(name)`
-
- - **name**, Job's name, string.
- - **return**, json's format object.
-
-### JobPlugin
-Job Plugin,is node module, export as function has three parames.
-`module.exports = function(sc,job,isStop){}`
-
- - **sc**, {object},instance of sdb-schedule, you can call function
- - **job**, {object},this job info
- - **isStop**,{boolean} ,true means this is stop callback,you can clear resource and so on.
- - ***return 'msg string'***, {string},function can return string msg. If you using RedisDrv,msg will record to redis,you can look it.
-
-The following is a complete example, example demonstrates the following features:
-
- - Dynamically change the task properties
- - Stop the task
-
-```javascript
-module.exports = function(sc,job,isStop){
-	if( isStop === true ){
-		return stop( sc,job );
-	}else{
-		return run( sc,job );
-	}
+	]
 };
 
-var g_cnt = 0;
-function run( sc,job)
-{
-    console.log( 'run ' + 20002222 );
-	g_cnt++;
-	console.log( job['name'] + "  " + g_cnt +" : " + job['cron'] );
-	if( g_cnt > 10 ){
-		sc.stopJob( job['name'] );  // example stop this job
-	}
-	if( g_cnt > 3 ){
-		sc.updateJob( job['name'], {
-			"cron":"*/2 * * * * *",
-			"fun":"./sc/enableRoom.js",
-			"switch":true
-		});
-	}
-    return 'Run OK';
-}
-
-function stop(sc,job)
-{
-	console.log( 'stop ' + 20002222 );
-    return;
-}
-
 ```
+
+### redis
+Set redis Server Infomation:
+- **host**, redis Server IP
+- **port**, redis Server Port
+
+### keys
+Array，clean redis key config。
+
+* **name**, descript info
+* **type**, clean type
+	- **zset**, clear ZSET
+	- **list**，clear LIST 
+	- **key**，clear redis key, set expire implement remove this key
+* **match**, find the matched redis key, see *redis keys* synctax
+* **action**, operation
+	- **style**, operation method, support ( rank|score|rem|trim )。
+		- **rank**, it's valid when type is *ZSET* , call *zremrangebyrank*
+		- **score**,it's valid when type is *ZSET* , call *zremrangebyscore*
+		- **rem**, it's valid when type is *LIST* , call *lrem*
+		- **trim**, it's valid when type is *LIST* , call *ltrim*
+	- **min**,js expression, the min value, use for  ZSET and  LIST's trim
+	- **max**,js expression, the max value, use for  ZSET and  LIST's trim
+	- **count**,js expression, the clean *count*, use for LIST's rem
+	- **value**,js expression, the clean *value*, use for LIST's rem
+	- **expire**, number( second ),it's valid when type is key, set key's expire
+	- **regex**, the key's regex,support sub match
+    - **attr**, sub match attribute
+		- **matchType**, match type, support int,string,dateStramp
+			- **min**, min Value
+			- **max**, max value
+
+
+Below is the configuration of detailed examples:
+
+```javascript
+{
+	"redis":{ "host":"127.0.0.1","port":6379 },
+	"keys":[
+		{
+			"name":"清理zset类型",
+			"type":"zset",
+			"match":"*:Pool:his",
+			"action":{
+				"style" : "score",
+				"min"   : "'-inf'",
+				"max"   : "parseInt((new Date()).valueOf()/1000) - 86400 * 30",
+				"regex":"([0-9]{8}):*",
+				"attr":[
+					{
+						"matchType":"string",
+						"min"    : "50901800",
+						"max"    : ""
+					}
+				]
+			}
+		},
+		{
+			"name":"清理 List",
+			"type":"list",
+			"match":"brnn:winls",
+			"action":{
+				"style":"trim",
+				"min"  : 0,
+				"max"  : 3
+			}
+		},
+		{
+			"name":"清理key",
+			"type":"key",
+			"match":"rcard:20??????:*:*",
+			"action":{
+				"expire":36000,
+				"regex":"([0-9]{8}):([0-9]{1,}):([0-9]{1,})",
+				"attr":[
+					{
+						"matchType":"dateStamp",
+						"min"    : "0",
+						"max"    : "(new Date()).valueOf() - 86400 * 30000"
+					},
+					{
+						"matchType":"int",
+						"min"    : "0",
+						"max"    : "3"
+					},
+					{
+						"matchType":"string",
+						"min"    : "5",
+						"max"    : ""
+					}
+				]
+			}
+		},
+	]
+
+};
+```
+
 
 ## Copyright and license
 
@@ -246,10 +166,10 @@ Copyright 2016+ shudingbo
 Licensed under the **[MIT License]**.
 
 [node-schedule]: https://github.com/node-schedule/node-schedule
-[cron-parser]: https://github.com/harrisiirak/cron-parser
 [node-redis]:https://github.com/NodeRedis/node_redis
-[中文看这里]:https://github.com/shudingbo/sdb-schedule/wiki/Chinese
+[cron-parser]: https://github.com/harrisiirak/cron-parser
 [sdb-schedule-ui]: https://github.com/shudingbo/sdb-schedule-ui
 [download]: https://github.com/shudingbo/sdb-public/blob/master/sdb-schedule-ui/sdb-schedule-ui.7z
 [idMain]: https://github.com/shudingbo/sdb-public/blob/master/sdb-schedule-ui/main.jpg  "Main"
 [idSet]: https://github.com/shudingbo/sdb-public/blob/master/sdb-schedule-ui/setting.jpg  "Setting"
+[中文看这里]:https://github.com/shudingbo/scp-cleanRedis/blob/master/README-cn.md

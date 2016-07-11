@@ -1,237 +1,159 @@
-# 简洁计划任务框架
+# Redis 数据清理
+本模块是 [sdb-schedule] 的插件，用于自动清理 redis 数据。 sdb-schedule 也提供了APP [node-schedule-ui]，进行图形化操作。
+可在这里进行下载 [download]。
+- 支持 正则表达式
+- 支持 ZSET,LIST 的清理
 
 ![Setting][idSet]
 
+
 ## 安装
 
+### step 1: install module
 Using npm:
 
-    $ npm install sdb-schedule
+    $ npm install scp-cleanRedis
 
-To run the tests:
+### step 2: config in sdb-schedule
 
-    $ node test.js
+- 添加 Job，设置 Fun 参数为 **"scp-cleanRedis"**.
 
-## 描述
 
-本模块是一个简洁的计划任务框架模块（基于**[node-schedule]**）。 你只需要简单的配置，就可以获得功能强大的计划任务控制功能。此模块提供了下列功能：
- - 使用 Cron 格式 灵活的配置计划任务
- - 可以在执行中，动态控制计划任务的开/关/更新
- - 任务的配置脚本可以放在系统任意位置。
+## 更新记录
+### 0.0.1
+实现功能。
 
-## APP(UI)
-现在我们实现了一个APP [sdb-schedule-ui],用于管理schedule( 只支持 redis drv ),你可以在这里下载 [download].
-- 基于 Eletron 实现
-
-### 更新记录
-#### 1.0.8
-- 实现功能 #4,可以单独编辑Job的配置
-
-#### 1.0.6
-修复 #1
-
-#### 1.0.5
-修复 使用RedisDrv时，Job启动计时记录不正确的问题。
-
-#### 1.0.4
-实现 Redisdrv(redis 配置文件管理模块)，使用[node-redis]。
-
-#### 1.0.3
-重构代码，独立配置文件管理为单独的模块。现在能够更容易支持多个类型的配置文件管理。例如 使用 File/Redis/sql Server 存储管理计划任务的配置文件。
- - 增加 文件类型(FileDrv.js) 配置文件管理模块。
-
-## 配置 及 配置 管理
-### 配置文件
-  配置文件采用json格式，定义了每个计划任务，结构大致如下:
+## 配置 
+  配置文件采用json格式，定义了每个匹配，结构大致如下:
 
 ```javascript
-{
-	"schedules":{
-		"enableRoom":{
-			"cron":"*/5 * * * * *",
-			"fun":"./sc/enableRoom.js",
-			"switch":true
-		},
-		"disableRoom":{
-			"cron":"*/5 * * * * *",
-			"fun":"./sc/disableRoom.js",
-			"switch":false
+ {
+	"redis":{ "host":"127.0.0.1","port":6379 },
+	"keys":[
+		{
+			"name":"<descript info>",
+			"type":"<zset|list|key>",
+			"match":"<redis keys synctax>",
+			"action":{
+				"style" : "<rank|score|rem|trim>",  // rank|score for ZSET;rem|trim for LIST
+				"min"   : "<js expression>",
+				"max"   : "<js expression>",
+				"count" : "<js expression>", // optional ,FOR LIST rem
+				"value" : "<js expression>", // optional ,FOR LIST rem
+				"expire":36000,    // optional, for key type
+
+				"regex":"<regex>",
+				"attr":[
+					{
+						"matchType":"<int|string|dateStamp>",
+						"min"    : "<val0 | js expression>",
+						"max"    : "[val0 | js expression]"
+					}
+				]
+			}
 		}
-	}
-}
-```
-
-所有的工作任务在**schedules**域进行定义，每一个任务都有一个json对象定义，必须包含下面3个域(cron，fun和switch)。
-
-  - **cron** , 定义任务的 cron 格式的字符串。
-  - **fun**  , 是一个nodejs函数模块，在计划任务触发时调用。
-  - **switch**, 开关,告诉 sdb-schedules 是开还是关。
-
-The cron format consists of:
-```
-*    *    *    *    *    *
-┬    ┬    ┬    ┬    ┬    ┬
-│    │    │    │    │    |
-│    │    │    │    │    └ day of week (0 - 7) (0 or 7 is Sun)
-│    │    │    │    └───── month (1 - 12)
-│    │    │    └────────── day of month (1 - 31)
-│    │    └─────────────── hour (0 - 23)
-│    └──────────────────── minute (0 - 59)
-└───────────────────────── second (0 - 59, OPTIONAL)
-```
-#### Unsupported Cron Features
-
-Currently, `W` (nearest weekday), `L` (last day of month/week), and `#` (nth weekday
-of the month) are not supported. Most other features supported by popular cron
-implementations should work just fine.
-
-[cron-parser] is used to parse crontab instructions.
-
-### 配置文件管理
-自1.0.3版本起，配置文件管理作为了单独的模块，现在缺省提供了 文件类配置文件管理模块(FileDrv)，您可以根据需求扩展配置文件管理模块，例如使用redis 管理配置模块。
-我们可以在创建sdb-schedule时通过传入参数，指定使用的配置管理模块：
-
-```javascript
-var app = sc({ 
-				'cfg_drv':'filedrv.js',
-				'cfg_opt':{
-					'cfgFile':"./config.json"
-				}
-			});
-```
- - **cfg_drv**，指定使用的配置文件管理模块；
- - **cfg_opt**，指定配置文件管理模块的参数，会在构造配置文件管理模块式，作为参数传入。
-
-#### FileDrv ( File Configuration Manager Module)
-Using file manager the configuration. 
-
-cfg_opt:
- - **cfgFile**,Config file path;
-
-
-#### RedisDrv ( Redis Configuration Manager Module)
-Using Redis manager the configuration.
-
-cfg_opt:
- - **host**, redis server's host;
- - **port**, redis server's port;
- - **keyPre**, redis key's pre;
- - **checkInterval**, check config interval, mill sec;
-
-
-## API
-I am schedule framework, have two part:Frame and JobPlugin.
-
- - **[Frame](#frame)**, admin the Job Plugin.
- - **[Job Plugin](#jobplugin)**, Implement the schedule Job work.
-
- Work flow like this:
-
- 1. `var sc = require("sdb-schedule"); `  Require module sdb-schedules.
- 1. `var app = sc( { 'cfg_drv':'filedrv.js','cfg_opt':{} });` Construct sc object and give her ths config file path.
- 1. `app.run();` Call run() start work.
- 1. `app.stop();`  Stop work.
-
-### Frame
- - [run()](#run), 启动计划任务管理.
- - [stop()](#stop), 停止计划任务管理.
- - [updateJob(name,scCfg)](#updatejob), add/update schedule job.
- - [runJob(name)](#runjob), 运行指定名称的工作任务.
- - [stopJob(name)](#stopjob), 停止指定名称的工作任务.
- - [getConfig(name)](#getConfig), 获取名称的工作任务的配置.
-
-#### Run
-Run all job that *switch* is `true`.  
-No parames.
-
-#### stop
-Stop all job.
-No parames.
-
-#### updateJob
-`updateJob(name,scCfg )`
-
- - **name**, Job's name, string.
- - **scCfg**, Job's cfg.
-```javascript
-    {
-    	"corn":<* * * * * * *>,
-        "fun":"",
-        "switch":true|false
-    }
-```
- Update Job，
- - If cron or fun has change,and the job is running,then restart job.
- - If job not run,only change the config.
- - If job not exist, add new job,but can't run it ,you must manual run it( call runJob );
-
-
-#### runJob
-`runJob(name)`
-
- - **name**, Job's name, string.
-
-#### stopJob
-`stopJob(name)`
-
- - **name**, Job's name, string.
-
-#### getConfig
-`getConfig(name)`
-
- - **name**, Job's name, string.
- - **return**, json's format object.
-
-### JobPlugin
-Job Plugin,是一个单独的node模块，直接作为函数导出，必须包含三个参数：
-`module.exports = function(sc,job,isStop){}`
-
- - **sc**, sdb-schedule 对象实例，你可以通过它调用 提供的相关函数；
- - **job**, json对象，当前任务的相关信息；
- - **isStop**, boolean类型，true 表示是任务停止启动的回调；false 表示是任务运行的回调.
- - ***return 'msg string'***, 字符串，函数可以返回一个字符串，用于标记任务执行的具体情况。 如果使用了 RedisDrv 配置管理器R，这个消息将会被记录到redis，您可以通过查询redis，检测任务具体的执行信息。
-
-下面是一个完整的例子，例子说明了下列特色：
-
- - 动态改变任务属性
- - 自己停止自己
-
-```javascript
-module.exports = function(sc,job,isStop){
-	if( isStop === true ){
-		return stop( sc,job );
-	}else{
-		return run( sc,job );
-	}
+	]
 };
 
-var g_cnt = 0;
-function run( sc,job)
-{
-    console.log( 'run ' + 20002222 );
-	g_cnt++;
-	console.log( job['name'] + "  " + g_cnt +" : " + job['cron'] );
-	if( g_cnt > 10 ){
-		sc.stopJob( job['name'] );  // example stop this job
-	}
-	if( g_cnt > 3 ){
-		sc.updateJob( job['name'], {
-			"cron":"*/2 * * * * *",
-			"fun":"./sc/enableRoom.js",
-			"switch":true
-		});
-	}
-
-    return 'Run OK';
-}
-
-function stop(sc,job)
-{
-	console.log( 'stop ' + 20002222 );
-    return;
-}
-
 ```
+
+### redis
+配置操作的redis数据库的地址
+- **host**, redis服务器的IP；
+- **port**, redis服务器的端口号；
+
+### keys
+数组，清理的redis键的配置。
+
+* **name**,清理操作描述信息
+* **type**,清理类型
+	- **zset**,清理 ZSET 数据
+	- **list**，清理 LIST 数据
+	- **key**，清理redis key,通过设置超期值来实现
+* **match**，查找匹配的redis键，参照 redis keys 的语法。
+* **action**，操作
+	- **style**，操作的方式,支持 ( rank|score|rem|trim )。
+		- **rank**，type为 *ZSET* 时有效，对应调用 *zremrangebyrank* 实现数据的清理
+		- **score**,type为 *ZSET* 时有效，对应调用 *zremrangebyscore* 实现数据的清理
+		- **rem**，type为 *LIST* 时有效，对应调用 *lrem* 实现数据的清理
+		- **trim**，type为 *LIST* 时有效，对应调用 *ltrim* 实现数据的清理
+	- **min**，js表达式，移除范围低值，用于 ZSET 和 LIST 的 trim
+	- **max**，js表达式，移除范围高值，用于 ZSET 和 LIST 的 trim
+	- **count**，js表达式，移除数量，用于 LIST 的 rem
+	- **value**，js表达式，移除数值，用于 LIST 的 rem
+	- **expire**, 数字，单位秒， type为key时有效，设置 key 的超期值
+	- **regex**， 键的匹配正则表达式，支持子匹配，子匹配的匹配判断参数在 下面的 attr里面设置
+    - **attr**, 子匹配属性
+		- **matchType**，匹配类型，支持整形(int)，字符串(string)，时间戳(dateStamp)
+			- **min**，匹配范围低值
+			- **max**，匹配范围高值，对 string类型无效
+
+
+下面是配置的详细例子
+
+```javascript
+{
+	"redis":{ "host":"127.0.0.1","port":6379 },
+	"keys":[
+		{
+			"name":"清理zset类型",
+			"type":"zset",
+			"match":"*:Pool:his",
+			"action":{
+				"style" : "score",
+				"min"   : "'-inf'",
+				"max"   : "parseInt((new Date()).valueOf()/1000) - 86400 * 30",
+				"regex":"([0-9]{8}):*",
+				"attr":[
+					{
+						"matchType":"string",
+						"min"    : "50901800",
+						"max"    : ""
+					}
+				]
+			}
+		},
+		{
+			"name":"清理 List",
+			"type":"list",
+			"match":"brnn:winls",
+			"action":{
+				"style":"trim",
+				"min"  : 0,
+				"max"  : 3
+			}
+		},
+		{
+			"name":"清理key",
+			"type":"key",
+			"match":"rcard:20??????:*:*",
+			"action":{
+				"expire":36000,
+				"regex":"([0-9]{8}):([0-9]{1,}):([0-9]{1,})",
+				"attr":[
+					{
+						"matchType":"dateStamp",
+						"min"    : "0",
+						"max"    : "(new Date()).valueOf() - 86400 * 30000"
+					},
+					{
+						"matchType":"int",
+						"min"    : "0",
+						"max"    : "3"
+					},
+					{
+						"matchType":"string",
+						"min"    : "5",
+						"max"    : ""
+					}
+				]
+			}
+		},
+	]
+
+};
+```
+
 
 ## Copyright and license
 
