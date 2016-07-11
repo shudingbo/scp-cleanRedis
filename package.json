@@ -1,0 +1,26 @@
+{
+  "name": "scp-cleanRedis",
+  "version": "0.0.1",
+  "description": "cleanRedis plugin for sdb-schedule framework",
+  "main": "./lib/cleanRedis.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "schedule","redis","clean"
+  ],
+  "author": {
+    "name": "shudingbo",
+    "email": "shudingbo@qq.com"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "async": "^2.0.0-rc.6",
+    "moment": "^2.14.1",
+    "redis": "^2.6.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/shudingbo/sdb-schedule.git"
+  }
+}
