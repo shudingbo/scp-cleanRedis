@@ -1,5 +1,5 @@
 # Redis 数据清理
-本模块是 [sdb-schedule] 的插件，用于自动清理 redis 数据。 sdb-schedule 也提供了APP [node-schedule-ui]，进行图形化操作。
+本模块是 [sdb-schedule] 的插件，用于自动清理 redis 数据。 sdb-schedule 也提供了APP [sdb-schedule-ui]，进行图形化操作。
 可在这里进行下载 [download]。
 - 支持 正则表达式
 - 支持 ZSET,LIST 的清理
@@ -168,6 +168,7 @@ Licensed under the **[MIT License]**.
 [node-redis]:https://github.com/NodeRedis/node_redis
 [cron-parser]: https://github.com/harrisiirak/cron-parser
 [sdb-schedule-ui]: https://github.com/shudingbo/sdb-schedule-ui
+[sdb-schedule]: https://github.com/shudingbo/sdb-schedule
 [download]: https://github.com/shudingbo/sdb-public/blob/master/sdb-schedule-ui/sdb-schedule-ui.7z
 [idMain]: https://github.com/shudingbo/sdb-public/blob/master/sdb-schedule-ui/main.jpg  "Main"
 [idSet]: https://github.com/shudingbo/sdb-public/blob/master/sdb-schedule-ui/setting.jpg  "Setting"
