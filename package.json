@@ -1,6 +1,6 @@
 {
   "name": "scp-cleanRedis",
-  "version": "0.0.2",
+  "version": "0.1.0",
   "description": "cleanRedis plugin for sdb-schedule framework",
   "main": "./lib/cleanRedis.js",
   "scripts": {
