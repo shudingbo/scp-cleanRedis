@@ -24,6 +24,10 @@ Using npm:
 
 
 ## Changelog
+
+### 0.1.3
+Add Hash key clean. Del hash's filed by check the field's value. 
+
 ### 0.0.2
 Fix bug,only run once.
 
@@ -39,7 +43,7 @@ Implement it.
 	"keys":[
 		{
 			"name":"<descript info>",
-			"type":"<zset|list|key>",
+			"type":"<zset|list|key|hash>",
 			"match":"<redis keys synctax>",
 			"action":{
 				"style" : "<rank|score|rem|trim>",  // rank|score for ZSET;rem|trim for LIST
@@ -77,6 +81,7 @@ Array，clean redis key config。
 	- **zset**, clear ZSET
 	- **list**，clear LIST 
 	- **key**，clear redis key, set expire implement remove this key
+	- **hash**，clear redis hash data's field, call hdel do it
 * **match**, find the matched redis key, see *redis keys* synctax
 * **action**, operation
 	- **style**, operation method, support ( rank|score|rem|trim )。
@@ -130,6 +135,21 @@ Below is the configuration of detailed examples:
 				"max"  : 3
 			}
 		},
+		{
+            "name":"清理Hash",
+            "type":"hash",
+            "match":"*:recy",
+            "action":{
+				"regex":"([0-9]{8})",
+                "attr":[
+                       {
+                       "matchType":"dateStamp",
+                       "min":"0",
+                       "max":"(new Date()).valueOf() - 86400000 * 30"
+                       }
+                   ]
+            }
+        },
 		{
 			"name":"清理key",
 			"type":"key",

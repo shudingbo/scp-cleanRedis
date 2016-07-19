@@ -20,6 +20,9 @@ Using npm:
 
 
 ## 更新记录
+### 0.1.3
+增加对 hash field的清理功能，通过判断域是否满足条件
+
 ### 0.0.2
 修复只能清理一次的Bug。
 
@@ -73,6 +76,7 @@ Using npm:
 	- **zset**,清理 ZSET 数据
 	- **list**，清理 LIST 数据
 	- **key**，清理redis key,通过设置超期值来实现
+	- **hash**，清理redis hash field,通过 hdel 实现，检测hash key的域是否满足删除条件
 * **match**，查找匹配的redis键，参照 redis keys 的语法。
 * **action**，操作
 	- **style**，操作的方式,支持 ( rank|score|rem|trim )。
@@ -126,6 +130,21 @@ Using npm:
 				"max"  : 3
 			}
 		},
+		{
+            "name":"清理Hash",
+            "type":"hash",
+            "match":"*:recy",
+            "action":{
+				"regex":"([0-9]{8})",
+                "attr":[
+                       {
+                       "matchType":"dateStamp",
+                       "min":"0",
+                       "max":"(new Date()).valueOf() - 86400000 * 30"
+                       }
+                   ]
+            }
+        },
 		{
 			"name":"清理key",
 			"type":"key",
